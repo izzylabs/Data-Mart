@@ -1,34 +1,79 @@
 --task 1
-INSERT INTO film (title, description, release_year, language_id, original_language_id, rental_duration, rental_rate, length, replacement_cost, rating, last_update, special_features, fulltext)
-VALUES ('Inception', 'A mind-bending heist thriller', 2010, 1, NULL, 14, 4.99, 148, 19.99, 'PG-13', CURRENT_TIMESTAMP, '{"Special Features Here"}', 'Full Text Here');
-
+SELECT 
+    s.store_id,
+    s.staff_id,
+    SUM(p.amount) AS total_payments
+FROM 
+    staff s
+JOIN 
+    payment p ON s.staff_id = p.staff_id
+WHERE 
+    EXTRACT(YEAR FROM p.payment_date) = 2017
+GROUP BY 
+    s.store_id, s.staff_id
+HAVING 
+    SUM(p.amount) = (
+        SELECT MAX(sum_amount)
+        FROM (
+            SELECT 
+                s_inner.store_id,
+                s_inner.staff_id,
+                SUM(p_inner.amount) AS sum_amount
+            FROM 
+                staff s_inner
+            JOIN 
+                payment p_inner ON s_inner.staff_id = p_inner.staff_id
+            WHERE 
+                EXTRACT(YEAR FROM p_inner.payment_date) = 2017
+            GROUP BY 
+                s_inner.store_id, s_inner.staff_id
+        ) results
+        WHERE 
+            s.store_id = results.store_id
+        GROUP BY 
+            results.store_id
+    )
+ORDER BY 
+    s.store_id;
+	
 --task 2
--- Add actors for the film "Inception" to the "actor" table.
-INSERT INTO actor (first_name, last_name, last_update)
-VALUES
-    ('Leonardo', 'DiCaprio', CURRENT_TIMESTAMP),
-    ('Joseph', 'Gordon-Levitt', CURRENT_TIMESTAMP),
-    ('Ellen', 'Page', CURRENT_TIMESTAMP);
-
--- Add entries to the "film_actor" table linking actors to the film "Inception."
-INSERT INTO film_actor (actor_id, film_id, last_update)
-VALUES
-    ((SELECT actor_id FROM actor WHERE first_name = 'Leonardo'), (SELECT film_id FROM film WHERE title = 'Inception'), CURRENT_TIMESTAMP),
-    ((SELECT actor_id FROM actor WHERE first_name = 'Joseph'), (SELECT film_id FROM film WHERE title = 'Inception'), CURRENT_TIMESTAMP),
-    ((SELECT actor_id FROM actor WHERE first_name = 'Ellen'), (SELECT film_id FROM film WHERE title = 'Inception'), CURRENT_TIMESTAMP);
+SELECT 
+    f.film_id,
+    r.film_count,
+    f.rating
+FROM 
+    film f
+INNER JOIN (
+    SELECT 
+        i.film_id,
+        SUM(rn.count) AS film_count
+    FROM 
+        inventory i
+    INNER JOIN (
+        SELECT 
+            inventory_id,
+            COUNT(inventory_id) AS count
+        FROM 
+            rental
+        GROUP BY 
+            inventory_id
+    ) AS rn ON i.inventory_id = rn.inventory_id
+    GROUP BY 
+        i.film_id
+) AS r ON f.film_id = r.film_id
+ORDER BY 
+    r.film_count DESC, f.film_id
+LIMIT 5;
 
 --task 3
--- Add your favorite movies to the "film" table.
-INSERT INTO film (title, description, release_year, language_id, original_language_id, rental_duration, rental_rate, length, replacement_cost, rating, last_update, special_features, fulltext)
-VALUES
-    ('Spider-Man3', 'This is a superhero movie', 2009, 1, NULL, 14, 4.99, 120, 19.99, 'R', CURRENT_TIMESTAMP, '{"Special Features Here"}', 'Full Text Here'),
-    ('Interstellar', 'This is a film about saving the earth', 2014, 2, NULL, 7, 3.99, 105, 14.99, 'R', CURRENT_TIMESTAMP, '{"Special Features Here"}', 'Full Text Here'),
-    ('Star Wars 5', 'About space battles', 2019, 1, NULL, 10, 2.99, 150, 24.99, 'R', CURRENT_TIMESTAMP, '{"Special Features Here"}', 'Full Text Here');
-
--- Add the movies to a store's inventory.
-INSERT INTO inventory (film_id, store_id, last_update)
-VALUES
-    ((SELECT film_id FROM film WHERE title = 'Inception' LIMIT 1), (SELECT store_id FROM store WHERE store_id IN (1, 2) LIMIT 1), CURRENT_TIMESTAMP),
-    ((SELECT film_id FROM film WHERE title = 'Spider-Man3' LIMIT 1), (SELECT store_id FROM store WHERE store_id IN (1, 2) LIMIT 1), CURRENT_TIMESTAMP),
-    ((SELECT film_id FROM film WHERE title = 'Interstellar' LIMIT 1), (SELECT store_id FROM store WHERE store_id IN (1, 2) LIMIT 1), CURRENT_TIMESTAMP),
-    ((SELECT film_id FROM film WHERE title = 'Star Wars 5' LIMIT 1), (SELECT store_id FROM store WHERE store_id IN (1, 2) LIMIT 1), CURRENT_TIMESTAMP);
+SELECT
+    MAX(f.release_year) AS max_release_year,
+    fa.actor_id
+FROM
+    film_actor fa
+INNER JOIN
+    film f ON fa.film_id = f.film_id
+GROUP BY
+    fa.actor_id
+ORDER BY
+    max_release_year DESC;
