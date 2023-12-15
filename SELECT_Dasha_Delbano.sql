@@ -1,4 +1,5 @@
 --task 1
+--solution 1
 SELECT 
     s.store_id,
     s.staff_id,
@@ -35,8 +36,33 @@ HAVING
     )
 ORDER BY 
     s.store_id;
+
+--solution 2
+SELECT
+    store_id,
+    staff_id,
+    sum_amount1
+FROM (
+    SELECT
+        store_id,
+        s1.staff_id,
+        SUM(amount) AS sum_amount1,
+        RANK() OVER (PARTITION BY store_id ORDER BY SUM(amount) DESC) AS rnk
+    FROM
+        staff s1
+    JOIN
+        payment p1 ON s1.staff_id = p1.staff_id
+    WHERE
+        EXTRACT(YEAR FROM payment_date) = 2017
+    GROUP BY
+        store_id, s1.staff_id
+) AS ranked_data
+WHERE rnk = 1
+ORDER BY store_id;
+
 	
 --task 2
+--solution 1
 SELECT 
     f.film_id,
     r.film_count,
@@ -64,6 +90,24 @@ INNER JOIN (
 ORDER BY 
     r.film_count DESC, f.film_id
 LIMIT 5;
+
+--solution 2
+SELECT
+    film.film_id,
+    COALESCE(COUNT(rental.inventory_id), 0) AS film_count,
+    film.rating
+FROM
+    film
+LEFT JOIN
+    inventory i ON film.film_id = i.film_id
+LEFT JOIN
+    rental ON i.inventory_id = rental.inventory_id
+GROUP BY
+    film.film_id, film.rating
+ORDER BY
+    film_count DESC, film.film_id
+LIMIT 5;
+
 
 --task 3
 SELECT
