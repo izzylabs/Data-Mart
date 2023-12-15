@@ -3,7 +3,7 @@
 
 UPDATE film
 SET rental_duration = 21, rental_rate = 9.99
-WHERE title = 'Openheimer';
+WHERE title = 'Inception';
 
 --task 2
 --Alter any existing customer in the database with at least 10 rental and 10 payment records.
